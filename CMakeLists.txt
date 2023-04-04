@@ -60,7 +60,7 @@ add_library(imgui STATIC
 
 add_executable(ProceduralAnimation
 		src/main.cpp
-		src/PVector.h src/ParticleSystem.h)
+		src/PVector.h src/ParticleSystem.h src/LegKinematics.h src/BodySim.h)
 
 target_link_libraries(ProceduralAnimation PRIVATE raylib winmm imgui)
 

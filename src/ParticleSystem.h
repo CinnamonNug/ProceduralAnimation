@@ -68,10 +68,10 @@ public:
                 x1 += delta*diff*particles[c.particle_a].inv_mass;
                 x2 -= delta*diff*particles[c.particle_b].inv_mass;
             }
-            Particle &p1 = particles[0];
-            static PVector pinned_pos = {380, 225}; //TODO temp non static
-            if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) pinned_pos = {GetMousePosition().x, GetMousePosition().y};
-            p1.position = pinned_pos;
+//            Particle &p1 = particles[0];
+//            static PVector pinned_pos = {380, 225}; //TODO temp non static
+//            if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) pinned_pos = {GetMousePosition().x, GetMousePosition().y};
+//            p1.position = pinned_pos;
         }
     }
 

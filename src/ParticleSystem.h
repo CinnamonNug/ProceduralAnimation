@@ -26,14 +26,18 @@ public:
     struct Constraint;
     std::vector<Particle> particles;
     std::vector<Constraint> constraints;
-    float fTimeStep = 1/60.f;
 
     virtual ~ParticleSystem() = default;
 
-    void TimeStep() {
-        Verlet();
+    virtual void TimeStep(float fTimeStep) {
+        AccumulateForces();
+        Verlet(fTimeStep);
         SatisfyConstraints();
         ResetForces();
+    }
+
+    virtual void AccumulateForces() {
+        // TODO
     }
 
     void ResetForces() {
@@ -42,7 +46,7 @@ public:
         }
     }
 
-    void Verlet() {
+    void Verlet(float fTimeStep) {
         for (auto &p : particles) {
             PVector &x = p.position;
             PVector temp = x;
@@ -54,7 +58,7 @@ public:
     }
 
     virtual void SatisfyConstraints() {
-        for(int j=0; j < 10; j++) { // TODO variable num iterations
+        for(int j=0; j < 5; j++) { // TODO variable num iterations
             for (auto &c : constraints) {
                 // Then satisfy (C2)
                 PVector& x1 = particles[c.particle_a].position;
@@ -70,6 +74,10 @@ public:
     }
 
     virtual void Draw() {
+        DrawSkeleton();
+    }
+
+    void DrawSkeleton() {
         for (auto &p : particles) {
             p.draw();
         }

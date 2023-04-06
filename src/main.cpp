@@ -15,10 +15,9 @@ int main() {
     SetTargetFPS(60);
 
     BodySim bsm;
-    bsm.Init();
 
     while(!WindowShouldClose()) {
-        bsm.Update();
+        bsm.TimeStep(GetFrameTime());
 
         BeginDrawing();
             bsm.Draw();

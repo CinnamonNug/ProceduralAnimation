@@ -11,117 +11,112 @@
 #include <PVector.h>
 
 
-class BodySim {
+class BodySim : public ParticleSystem {
 public:
     LegKinematics lkm;
-    ParticleSystem psm;
-    PVector CM_Offset = PVector{0, 0};
-    double M = 0;
+    PVector CM_Offset;
+    double M;
 
-    void Init() {
+    BodySim() : CM_Offset(0,0), M(0) {
         PVector hip = lkm.hip;
         PVector l_shoulder = hip + PVector{-100, -200};
         PVector r_shoulder = hip+ PVector{100, -200};
-        PVector r_hand = r_shoulder + PVector{0, 200};
-        PVector l_hand = l_shoulder + PVector{0, 200};
+        PVector r_hand = r_shoulder + PVector{200, 0};
+        PVector l_hand = l_shoulder + PVector{-200, 0};
 
-        psm.AddParticle({hip, hip,4, DEFAULT_MASS});   // hip particle
-        psm.AddParticle({l_shoulder, l_shoulder,4, DEFAULT_MASS});   // l_shoulder
-        psm.AddParticle({r_shoulder, r_shoulder,4, DEFAULT_MASS}); // r_shoulder
-        psm.AddParticle({r_hand, r_hand,4, 1/200.f});   // r_hand
-        psm.AddParticle({l_hand, l_hand,4, 1/200.f});   // l_hand
+        this->AddParticle({hip, hip,4, DEFAULT_MASS});   // hip particle
+        this->AddParticle({l_shoulder, l_shoulder,4, DEFAULT_MASS});   // l_shoulder
+        this->AddParticle({r_shoulder, r_shoulder,4, DEFAULT_MASS}); // r_shoulder
+        this->AddParticle({r_hand, r_hand,4, 1/200.f});   // r_hand
+        this->AddParticle({l_hand, l_hand,4, 1/200.f});   // l_hand
 
 
         float arm_length = PVector{l_shoulder - l_hand}.length();
-        psm.AddConstraint({0,1, arm_length});   // hip-l_shoulder
-        psm.AddConstraint({0,2, arm_length});   // hip-r_shoulder
-        psm.AddConstraint({1,2, 200});           // l_shoulder-r_shoulder
-        psm.AddConstraint({2,3, 200});           // r_arm-r_shoulder
-        psm.AddConstraint({1,4, 200});           // l_arm-l_shoulder
+        this->AddConstraint({0,1, arm_length});    // hip-l_shoulder
+        this->AddConstraint({0,2, arm_length});    // hip-r_shoulder
+        this->AddConstraint({1,2, 200});           // l_shoulder-r_shoulder
+        this->AddConstraint({2,3, 200});           // r_arm-r_shoulder
+        this->AddConstraint({1,4, 200});           // l_arm-l_shoulder
 
-
-        // hip and torso should be the same intially, I know where it is at first so we don't need to calculate;
-
-        for (int i = 0; i < 5; i++) {
-            double m = 1 / psm.particles[i].inv_mass; // inverse mass
+        // Calculate where the centre of mass is relative to the hip
+        for (int i = 1; i < 3; i++) {
+            double m = 1 / this->particles[i].inv_mass; // inverse mass
             M += m;
-            CM_Offset += psm.particles[i].position * m;
+            CM_Offset += this->particles[i].position * m;
         }
         CM_Offset /= M;
         CM_Offset = CM_Offset - hip;
-
-
     }
 
-
-    void Update() {
+    void AccumulateForces() override {
         lkm.Update();
-        PVector &p_hip = psm.particles.at(0).position;
-        p_hip = lkm.hip;
-        PVector CM = CM_Offset + p_hip;
+
+        PVector CM = CM_Offset + lkm.hip;
 
         PVector torso{0,0};
-        for (int i = 0; i < 5; i++) {
-            double m = 1 / psm.particles[i].inv_mass; // inverse mass
-            torso += psm.particles[i].position * m;
+        for (int i = 1; i < 3; i++) {
+            double m = 1 / this->particles[i].inv_mass; // inverse mass
+            torso += this->particles[i].position * m;
         }
         torso /= M;
 
-        PVector comToTorso = torso - CM; // Vector from the center of mass to the torso
+        PVector comToTorso = CM - torso;
 
-//        double theta = std::acos(comToTorso.normalized().dot(PVector(0, -1))); // Angle between the vector and vertical axis
-//        double torqueMagnitude = 0.1 * theta; // Torque magnitude proportional to the angle
-//        PVector torque = PVector(comToTorso.y, comToTorso.x) * torqueMagnitude; // Torque vector
-//
-//
-//        psm.particles.at(1).acceleration = torque * 1 / psm.particles[1].inv_mass;
-//        psm.particles.at(2).acceleration = torque * 1 / psm.particles[2].inv_mass;
-//        psm.particles.at(3).acceleration = torque * 1 / psm.particles[3].inv_mass;
-//        psm.particles.at(4).acceleration = torque * 1 / psm.particles[4].inv_mass;
+        PVector torque = PVector(-comToTorso.y, comToTorso.x); // Torque vector
 
-        PVector net_torque{0, 0}; // initialize to zero
-        for (int i = 0; i < 5; i++) {
-            ParticleSystem::Particle &p = psm.particles[i];
-            PVector force = p.acceleration * p.inv_mass; // compute force for current particle
-            PVector radius = p.position - CM; // compute radius vector for current particle
-            float torque = radius.x * force.y - radius.y * force.x; // compute torque scalar for current particle using inline formula
-            net_torque += PVector(-torque, torque); // accumulate torque as a 2D vector
-        }
-
-        double I = 0.0; // moment of inertia
-        for (int i = 0; i < 5; i++) {
-            ParticleSystem::Particle &p = psm.particles[i];
-            double m = 1.0 / p.inv_mass;
-            double r = (p.position - CM).length();
-            I += m * r * r;
-        }
-
-        double angular_acceleration = net_torque.length() / I;
-
-        double theta = std::acos(comToTorso.normalized().dot(PVector(0, -1))); // Angle between the vector and vertical axis
-        double torqueMagnitude = 0.1 * theta; // Torque magnitude proportional to the angle
-        PVector torque = PVector(comToTorso.y, comToTorso.x) * torqueMagnitude; // Torque vector
-
-        psm.particles.at(1).acceleration = torque * angular_acceleration * 1 / psm.particles[1].inv_mass;
-        psm.particles.at(2).acceleration = torque * angular_acceleration * 1 / psm.particles[2].inv_mass;
-        psm.particles.at(3).acceleration = torque *  angular_acceleration * 1 / psm.particles[3].inv_mass;
-        psm.particles.at(4).acceleration = torque *angular_acceleration * 1 / psm.particles[4].inv_mass;
-
-
+        this->particles.at(1).acceleration = torque * -1 / this->particles.at(1).inv_mass ;
+        this->particles.at(2).acceleration = torque * 1 / this->particles.at(2).inv_mass;
 
 
         DrawCircleP(CM, 4, MAGENTA);
         DrawCircleP(torso, 4, MAGENTA);
-        PVector torso_tor =  torso + torque * 10.f;
+        PVector torso_tor =  torso + torque;
         DrawLineP(torso, torso_tor, 4.f, MAGENTA);
-
-        psm.TimeStep();
 
     }
 
-    void Draw() {
+    void SatisfyConstraints() override {
+        for(int j=0; j < 5; j++) {
+            for (auto &c : constraints) {
+                // Then satisfy (C2)
+                PVector& x1 = particles[c.particle_a].position;
+                PVector& x2 = particles[c.particle_b].position;
+                PVector delta = x2 - x1;
+                float deltalength = sqrt(delta.dot(delta));
+                float diff = (deltalength-c.length)
+                             /(deltalength*(particles[c.particle_a].inv_mass+particles[c.particle_b].inv_mass));
+                x1 += delta*diff*particles[c.particle_a].inv_mass;
+                x2 -= delta*diff*particles[c.particle_b].inv_mass;
+            }
+
+            // hips must be attached
+            this->particles.at(0).position = lkm.hip;
+
+            // the hand and body must not cross each other
+            // points 1 and 4 left shoulder + hand
+            for (int i = 3; i < 5; i++) {
+                PVector arm = particles[i].position - particles[0].position;
+                if (arm.y <= 0) {
+                    // arm is crossing over body, adjust position to satisfy constraint
+                    particles[i].position.y = particles[0].position.y;
+                }
+            }
+
+            // shoulders should never be lower than hips
+            for (int i = 1; i < 3; i++) {
+                PVector arm = particles[i].position - particles[0].position;
+                if (particles[i].position.y >= particles[0].position.y) {
+                    // arm is crossing over body, adjust position to satisfy constraint
+                    particles[i].position.y = particles[0].position.y;
+                }
+            }
+        }
+    }
+
+
+    void Draw() override {
         lkm.Draw();
-        psm.Draw();
+        this->DrawSkeleton();
         lkm.DrawImgui();
     }
 

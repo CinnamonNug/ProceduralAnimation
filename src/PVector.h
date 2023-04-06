@@ -10,7 +10,7 @@
 
 class PVector {
 public:
-    double x, y, z;
+    float x, y, z;
 
     PVector() : x(0.0), y(0.0) {}
 

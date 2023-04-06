@@ -11,10 +11,6 @@
 #include "raylib/rlImGui.h"
 #include <raylib.h>
 
-#define DrawCircleP(p, rad, color) DrawCircleV({static_cast<float>(p.x), static_cast<float>(p.y)}, rad, color);
-#define DrawLineP(p1, p2, thick, color) DrawLineEx({static_cast<float>(p1.x), static_cast<float>(p1.y)}, \
-                                        {static_cast<float>(p2.x), static_cast<float>(p2.y)}, thick, color); \
-
 
 
 class LegKinematics {

@@ -10,6 +10,12 @@
 #include <vector>
 
 
+#define DrawCircleP(p, rad, color) DrawCircleV({static_cast<float>(p.x), static_cast<float>(p.y)}, rad, color);
+#define DrawLineP(p1, p2, thick, color) DrawLineEx({static_cast<float>(p1.x), static_cast<float>(p1.y)}, \
+                                        {static_cast<float>(p2.x), static_cast<float>(p2.y)}, thick, color); \
+
+
+
 #define DEFAULT_ACCELERATION PVector{0, 980.f}
 #define DEFAULT_MASS (1/100.f)
 
@@ -25,22 +31,14 @@ public:
     virtual ~ParticleSystem() = default;
 
     void TimeStep() {
-        AccumulateForces();
         Verlet();
         SatisfyConstraints();
+        ResetForces();
     }
 
-    void AccumulateForces() {
+    void ResetForces() {
         for (auto &p : particles) {
             p.acceleration = DEFAULT_ACCELERATION;
-        }
-
-        Particle &p2 = particles[particles.size() - 1];
-        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            PVector temp = PVector{GetMousePosition().x, GetMousePosition().y} - p2.position;
-            p2.acceleration = temp * 100;
-        } else {
-            p2.acceleration = DEFAULT_ACCELERATION;
         }
     }
 
@@ -56,7 +54,7 @@ public:
     }
 
     virtual void SatisfyConstraints() {
-        for(int j=0; j < 5; j++) { // TODO variable num iterations
+        for(int j=0; j < 10; j++) { // TODO variable num iterations
             for (auto &c : constraints) {
                 // Then satisfy (C2)
                 PVector& x1 = particles[c.particle_a].position;
@@ -68,10 +66,6 @@ public:
                 x1 += delta*diff*particles[c.particle_a].inv_mass;
                 x2 -= delta*diff*particles[c.particle_b].inv_mass;
             }
-//            Particle &p1 = particles[0];
-//            static PVector pinned_pos = {380, 225}; //TODO temp non static
-//            if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) pinned_pos = {GetMousePosition().x, GetMousePosition().y};
-//            p1.position = pinned_pos;
         }
     }
 

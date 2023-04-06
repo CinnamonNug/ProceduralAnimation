@@ -76,6 +76,7 @@ public:
     double dot(const PVector& other) const {
         return x * other.x + y * other.y;
     }
+
 };
 
 #endif //PROCEDURALANIMATION_PVECTOR_H
